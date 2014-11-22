@@ -450,7 +450,6 @@ public class QuickStatusBarHeader extends BaseStatusBarHeader implements
         applyHeaderBackgroundShadow();
     }
 
-
     @Override
     public void updateHeader(final Drawable headerImage, final boolean force) {
         post(new Runnable() {
