@@ -18,7 +18,11 @@
   <!-- ADB notification -->
   <java-symbol type="string" name="adb_net_active_notification_title" />
   <java-symbol type="string" name="adb_both_active_notification_title" />
-  <java-symbol type="string" name="adb_active_generic_notification_message" />	
+  <java-symbol type="string" name="adb_active_generic_notification_message" />
+  
+  <!-- Automatic brightness enhancements -->
+  <java-symbol type="integer" name="config_autoBrightnessBrighteningLightFastDebounce"/>
+    	
   <!-- Reboot - Advanced Reboot -->
   <java-symbol type="array" name="shutdown_reboot_options" />
   <java-symbol type="array" name="shutdown_reboot_actions" />
