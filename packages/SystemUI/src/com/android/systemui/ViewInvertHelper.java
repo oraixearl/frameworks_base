@@ -94,9 +94,8 @@ public class ViewInvertHelper {
     }
 
     public void update(boolean invert) {
-        mShouldInvert = Resources.getSystem().getBoolean(
-                com.android.internal.R.bool.config_invert_colors_on_doze);
-        if (invert && mThemeInvert) {
+        if (invert && Resources.getSystem().getBoolean(
+                com.android.internal.R.bool.config_invert_colors_on_doze)) {
             updateInvertPaint(1f);
             for (int i = 0; i < mTargets.size(); i++) {
                 mTargets.get(i).setLayerType(View.LAYER_TYPE_HARDWARE, mDarkPaint);
