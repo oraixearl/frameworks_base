@@ -3770,11 +3770,19 @@ public final class Settings {
                 "notification_light_pulse_custom_enable";
 
         /**
+         * Whether to allow notifications with the screen on or DayDreams.
+         * The value is boolean (1 or 0). Default will always be false.
+         * @hide
+         */
+        public static final String NOTIFICATION_LIGHT_SCREEN_ON =
+                "notification_light_screen_on_enable";
+                
+        /**
          * Which custom LED values to use for the notification pulse LED.
          * @hide
          */
         public static final String NOTIFICATION_LIGHT_PULSE_CUSTOM_VALUES =
-                "notification_light_pulse_custom_values";        
+                "notification_light_pulse_custom_values";                
 
         /**
          * The delay when killing the app on long press takes place
@@ -4080,6 +4088,7 @@ public final class Settings {
             LOCK_TO_APP_ENABLED,
             NOTIFICATION_SOUND,
             ACCELEROMETER_ROTATION,
+            NOTIFICATION_LIGHT_SCREEN_ON,
             ALLOW_LIGHTS,
             INCREASING_RING,
             INCREASING_RING_START_VOLUME,
