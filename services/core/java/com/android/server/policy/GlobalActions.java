@@ -125,8 +125,6 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
     private final boolean mShowSilentToggle;
     private static boolean mTorchEnabled = false;
 
-    private final EmergencyAffordanceManager mEmergencyAffordanceManager;
-
     // Power menu customizations
     String mActions;
 
