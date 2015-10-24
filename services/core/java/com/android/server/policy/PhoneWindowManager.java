@@ -513,6 +513,11 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     boolean mVolBtnMusicControls;
     boolean mIsLongPress;
 
+    // During wakeup by volume keys, we still need to capture subsequent events
+    // until the key is released. This is required since the beep sound is produced
+    // post keypressed.
+    boolean mVolumeWakeTriggered;
+
     int mPointerLocationMode = 0; // guarded by mLock
 
     // The last window we were told about in focusChanged.
@@ -5851,26 +5856,15 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             case KeyEvent.KEYCODE_VOLUME_DOWN:
             case KeyEvent.KEYCODE_VOLUME_UP:
             case KeyEvent.KEYCODE_VOLUME_MUTE: {
-                // Eat all volume keys for wake unless music and music control is active
-                // This disables key beep, vol wake based on music active/control states
-                if (mVolBtnMusicControls) {
-                    if (isWakeKey && (!isMusicActive() && mVolumeWakeScreen)) {
-                        mVolumeWakeTriggered = true;
-                        break;
-                    } else if (mVolumeWakeTriggered && !down) {
-                        result &= ~ACTION_PASS_TO_USER;
-                        mVolumeWakeTriggered = false;
-                        break;
-                    }
-                } else {
-                    if (isWakeKey && mVolumeWakeScreen) {
-                        mVolumeWakeTriggered = true;
-                        break;
-                    } else if (mVolumeWakeTriggered && !down) {
-                        result &= ~ACTION_PASS_TO_USER;
-                        mVolumeWakeTriggered = false;
-                        break;
-                    }
+                // Eat all down & up keys when using volume wake.
+                // This disables volume control, music control, and "beep" on key up.
+                if (isWakeKey && mVolumeWakeScreen) {
+                    mVolumeWakeTriggered = true;
+                    break;
+                } else if (mVolumeWakeTriggered && !down) {
+                    result &= ~ACTION_PASS_TO_USER;
+                    mVolumeWakeTriggered = false;
+                    break;
                 }
                 if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
                     if (down) {
@@ -5933,8 +5927,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                     }
                 }
 
-                // Disable music and volume control when used as wake key
-                if ((result & ACTION_PASS_TO_USER) == 0 && !mVolumeWakeScreen) {
+                if ((result & ACTION_PASS_TO_USER) == 0) {
                     boolean mayChangeVolume = false;
 
                     if (isMusicActive()) {
