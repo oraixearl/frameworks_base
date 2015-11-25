@@ -3993,6 +3993,13 @@ public final class Settings {
          * @hide
          */
         public static final String LOCKSCREEN_MEDIA_METADATA = "lockscreen_media_metadata";
+        
+       /**
+         * Control whether the accelerometer will be used to change lockscreen
+         * orientation.  If 0, it will not be used; if 1, it will be used by default.
+         * @hide
+         */
+        public static final String LOCKSCREEN_ROTATION = "lockscreen_rotation"; 
 
         /**
          * Whether the phone volume up / down effect should be played
