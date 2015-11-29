@@ -128,7 +128,6 @@ public class BatteryMeterDrawable extends Drawable implements
         levels.recycle();
         colors.recycle();
         updateShowPercent();
-
         mWarningString = context.getString(R.string.battery_meter_very_low_overlay_symbol);
         mCriticalLevel = mContext.getResources().getInteger(
                 com.android.internal.R.integer.config_criticalBatteryWarningLevel);

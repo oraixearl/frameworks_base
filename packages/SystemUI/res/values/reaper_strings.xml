@@ -45,6 +45,11 @@
     <string name="heads_up_snooze_message_one_minute">Peeking notification from <xliff:g id="string">%s</xliff:g> are snoozing for 1 minute.</string>
     <string name="heads_up_snooze_message">Peeking notification from <xliff:g id="string">%s</xliff:g> are snoozing for <xliff:g id="number">%d</xliff:g> minutes.</string>      
 
+    <!-- Music QS Tile -->
+    <string name="quick_settings_music_label">Music</string>
+    <string name="quick_settings_music_play">Play</string>
+    <string name="quick_settings_music_pause">Pause</string>
+
     <!-- Purgatory Tile -->
     <string name="quick_settings_reaper">Purgatory</string>
     
