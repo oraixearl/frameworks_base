@@ -3870,6 +3870,12 @@ public final class Settings {
          */
         public static final String VOLUME_LINK_NOTIFICATION = "volume_link_notification";
 
+        /**
+         * Whether to wake the screen with the volume keys, the value is boolean.
+         * @hide
+         */
+        public static final String VOLUME_LINK_NOTIFICATION = "volume_link_notification";
+
         /** @hide */
         public static final Validator KEY_VALIDATOR = new Validator() {
             @Override
@@ -6720,7 +6726,7 @@ public final class Settings {
         public static final String WEB_ACTION_ENABLED = "web_action_enabled";
 
         /**
-         * Beginning of Pure Secure Settings Additions
+         * Beginning of Reaper Secure Settings Additions
          * @hide
          */
 
@@ -9287,7 +9293,7 @@ public final class Settings {
         public static final String DATABASE_DOWNGRADE_REASON = "database_downgrade_reason";
 
         /**
-         * Beginning of Pure Global Settings Additions
+         * Beginning of Reaper Global Settings Additions
          * @hide
          */
 
