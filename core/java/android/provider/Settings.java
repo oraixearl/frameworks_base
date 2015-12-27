@@ -3700,7 +3700,7 @@ public final class Settings {
          * Force expanded notifications on all apps that support it.
          * @hide
          */
-        public static final String FORCE_EXPANDED_NOTIFICATIONS = "force_expanded_notifications";
+        public static final String FORCE_EXPANDED_NOTIFICATIONS = "force_expanded_notifications";       
 
         /**
          * Defines the global heads up notification snooze
