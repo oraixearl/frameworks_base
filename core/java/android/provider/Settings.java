@@ -3586,8 +3586,6 @@ public final class Settings {
          * Beginning of Reaper System Settings Additions
          * @hide
          */
-<<<<<<< HEAD
-=======
         public static final String REVERSE_LOOKUP_PROVIDER = "reverse_lookup_provider";
 
         /**
@@ -3619,6 +3617,12 @@ public final class Settings {
          * @hide
          */
         public static final String FORCE_EXPANDED_NOTIFICATIONS = "force_expanded_notifications";
+
+        /**
+         * Defines the global heads up notification snooze
+         * @hide
+         */
+        public static final String HEADS_UP_NOTIFICATION_SNOOZE = "heads_up_notification_snooze";
 
         /**
          * Heads up timeout configuration
@@ -3678,7 +3682,6 @@ public final class Settings {
          * @hide
          */
         public static final String LOCKSCREEN_ENABLE_POWER_MENU = "lockscreen_enable_power_menu";
->>>>>>> e7f512f... Improve Heads up toggle [1/2]
 
         /**
          * Whether to show media art on lockscreen
