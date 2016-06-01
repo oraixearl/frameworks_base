@@ -71,14 +71,9 @@ public class IconMerger extends LinearLayout {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
         // we need to constrain this to an integral multiple of our children
         int width = getMeasuredWidth();
-         final ViewGroup parent = (ViewGroup)getParent();
-         View label = parent.findViewById(R.id.statusbar_carrier_text);
         if (mCenterClock) {
             final int totalWidth = mContext.getResources().getDisplayMetrics().widthPixels;
             final int usableWidth = (totalWidth - mClockAndDateWidth - 2 * getFullIconWidth()) / 2;
-            if (label.getVisibility() != View.GONE) {
-            width -= label.getWidth();
-			}
             if (width > usableWidth) {
                 width = usableWidth;
             }
