@@ -994,7 +994,11 @@ public class ResourcesManager {
             if (r != null) {
                 final ResourcesKey key = updatedResourceKeys.get(r.getImpl());
                 if (key != null) {
-                    r.setImpl(findOrCreateResourcesImplForKeyLocked(key));
+                    final ResourcesImpl impl = findOrCreateResourcesImplForKeyLocked(key);
+                    if (impl == null) {
+                        throw new Resources.NotFoundException("failed to load");
+                    }
+                    r.setImpl(impl);
                 }
             }
         }
@@ -1007,7 +1011,11 @@ public class ResourcesManager {
                 if (r != null) {
                     final ResourcesKey key = updatedResourceKeys.get(r.getImpl());
                     if (key != null) {
-                        r.setImpl(findOrCreateResourcesImplForKeyLocked(key));
+                        final ResourcesImpl impl = findOrCreateResourcesImplForKeyLocked(key);
+                        if (impl == null) {
+                            throw new Resources.NotFoundException("failed to load");
+                        }
+                        r.setImpl(impl);
                     }
                 }
             }
