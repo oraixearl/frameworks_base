@@ -3944,6 +3944,12 @@ public final class Settings {
          *  @hide
          */
         public static final String SHOW_LOCKSCREEN_CLOCK = "show_lockscreen_clock";
+        
+        /**
+         * Show the pending notification counts as overlays on the status bar
+         * @hide
+         */
+        public static final String LOCK_CLOCK_FONTS = "lock_clock_fonts";        
 
         /**
          * show lockscreen date
@@ -3962,12 +3968,6 @@ public final class Settings {
          * @hide
          */
         public static final String  RECENTS_CLEAR_ALL_LOCATION = "recents_clear_all_location";        
-
-        /**
-         * Show the pending notification counts as overlays on the status bar
-         * @hide
-         */
-        public static final String LOCK_CLOCK_FONTS = "lock_clock_fonts";
 
         /**
          * This preference enables showing the power menu on LockScreen.
