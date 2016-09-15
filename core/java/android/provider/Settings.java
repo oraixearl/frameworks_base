@@ -4121,6 +4121,12 @@ public final class Settings {
         public static final String ANIM_TILE_INTERPOLATOR = "anim_tile_interpolator";
 
         /**
+         * Disable dashboard conditions in settings
+         * @hide
+         */
+        public static final String DISABLE_DASHBOARD_CONDITIONS = "disable_dashboard_conditions";
+
+        /**
          * Disable dashboard suggestions in settings
          * @hide
          */
