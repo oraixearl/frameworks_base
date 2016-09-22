@@ -3589,7 +3589,7 @@ public final class Settings {
         public static final String REVERSE_LOOKUP_PROVIDER = "reverse_lookup_provider";
 
         /**
-         * Enable double tap gesture anywhere on the lock screen put device to sleep
+         * whether to enable torch on lockscreen
          * @hide
          */
         public static final String DOUBLE_TAP_SLEEP_ANYWHERE = "double_tap_sleep_anywhere";
