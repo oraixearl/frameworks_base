@@ -2217,6 +2217,9 @@ message MetricsEvent {
     // END OF AOSP CONSTANTS
 
     // Reaper Metrics
-    REAPER = 500;
+    REAPER = 998;
+
+    // Quick setting tiles
+    QUICK_SETTINGS = 999;
   }
 }
