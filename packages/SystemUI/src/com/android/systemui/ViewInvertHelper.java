@@ -20,6 +20,7 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.content.Context;
+import android.content.res.Resources;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Paint;
@@ -38,6 +39,7 @@ public class ViewInvertHelper {
     private final long mFadeDuration;
     private final boolean mThemeInvert;
     private final ArrayList<View> mTargets = new ArrayList<>();
+    private boolean mShouldInvert;
 
     public ViewInvertHelper(View v, long fadeDuration) {
         this(v.getContext(), fadeDuration);
@@ -92,7 +94,9 @@ public class ViewInvertHelper {
     }
 
     public void update(boolean invert) {
-        if (invert) {
+        mShouldInvert = Resources.getSystem().getBoolean(
+                com.android.internal.R.bool.config_invert_colors_on_doze);
+        if (invert && mThemeInvert) {
             updateInvertPaint(1f);
             for (int i = 0; i < mTargets.size(); i++) {
                 mTargets.get(i).setLayerType(View.LAYER_TYPE_HARDWARE, mDarkPaint);
