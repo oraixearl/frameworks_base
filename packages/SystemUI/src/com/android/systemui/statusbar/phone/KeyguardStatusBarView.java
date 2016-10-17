@@ -54,8 +54,6 @@ public class KeyguardStatusBarView extends RelativeLayout
 
     private static final String STATUS_BAR_SHOW_BATTERY_PERCENT =
             Settings.Secure.STATUS_BAR_SHOW_BATTERY_PERCENT;
-    private static final String STATUS_BAR_BATTERY_STYLE =
-            Settings.Secure.STATUS_BAR_BATTERY_STYLE;
 
     private boolean mBatteryCharging;
     private boolean mKeyguardUserSwitcherShowing;
@@ -75,6 +73,8 @@ public class KeyguardStatusBarView extends RelativeLayout
     private int mSystemIconsSwitcherHiddenExpandedMargin;
     private int mSystemIconsBaseMargin;
     private View mSystemIconsContainer;
+
+    private boolean mShowBatteryText;
 
     private ContentObserver mObserver = new ContentObserver(new Handler()) {
         public void onChange(boolean selfChange, Uri uri) {
@@ -195,7 +195,9 @@ public class KeyguardStatusBarView extends RelativeLayout
                 mMultiUserSwitch.setVisibility(View.GONE);
             }
         }
-        mBatteryLevel.setVisibility(mBatteryCharging ? View.VISIBLE : View.GONE);
+        mBatteryLevel.setVisibility(
+                mBatteryCharging || mShowBatteryText ? View.VISIBLE : View.GONE);
+
         if (mCarrierLabel != null) {
             if (mShowCarrierLabel == 1) {
                 mCarrierLabel.setVisibility(View.VISIBLE);
@@ -229,8 +231,7 @@ public class KeyguardStatusBarView extends RelativeLayout
         }
         mBatteryListening = listening;
         if (mBatteryListening) {
-            TunerService.get(getContext()).addTunable(this,
-                    STATUS_BAR_SHOW_BATTERY_PERCENT, STATUS_BAR_BATTERY_STYLE);
+            TunerService.get(getContext()).addTunable(this, STATUS_BAR_SHOW_BATTERY_PERCENT);
             mBatteryController.addStateChangedCallback(this);
         } else {
             mBatteryController.removeStateChangedCallback(this);
@@ -374,5 +375,13 @@ public class KeyguardStatusBarView extends RelativeLayout
     @Override
     public void onDetachedFromWindow() {
         super.onDetachedFromWindow();
+    }
+
+    @Override
+    public void onTuningChanged(String key, String newValue) {
+        if (key.equals(STATUS_BAR_SHOW_BATTERY_PERCENT)) {
+            mShowBatteryText = newValue == null ? false : Integer.parseInt(newValue) == 2;
+            updateVisibilities();
+        }
     }
 }

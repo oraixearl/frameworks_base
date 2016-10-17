@@ -526,16 +526,6 @@ public class PhoneStatusBar extends BaseStatusBar implements DemoMode,
             }
 
             update();
-<<<<<<< HEAD
-        }
-
-
-        void unobserve() {
-            ContentResolver resolver = mContext.getContentResolver();
-            resolver.unregisterContentObserver(this);
-        }
-
-=======
         }
 
 
