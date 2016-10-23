@@ -76,9 +76,6 @@ public class KeyguardStatusBarView extends RelativeLayout
     private int mSystemIconsBaseMargin;
     private View mSystemIconsContainer;
 
-    private boolean mShowBatteryText;
-    private Boolean mForceBatteryText;
-
     private ContentObserver mObserver = new ContentObserver(new Handler()) {
         public void onChange(boolean selfChange, Uri uri) {
             showStatusBarCarrier();
@@ -198,13 +195,7 @@ public class KeyguardStatusBarView extends RelativeLayout
                 mMultiUserSwitch.setVisibility(View.GONE);
             }
         }
-        if (mForceBatteryText != null) {
-            mBatteryLevel.setVisibility(mForceBatteryText ? View.VISIBLE : View.GONE);
-        } else {
-            mBatteryLevel.setVisibility(
-                    mBatteryCharging || mShowBatteryText ? View.VISIBLE : View.GONE);
-        }
-
+        mBatteryLevel.setVisibility(mBatteryCharging ? View.VISIBLE : View.GONE);
         if (mCarrierLabel != null) {
             if (mShowCarrierLabel == 1) {
                 mCarrierLabel.setVisibility(View.VISIBLE);
@@ -383,27 +374,5 @@ public class KeyguardStatusBarView extends RelativeLayout
     @Override
     public void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-    }
-
-    @Override
-    public void onTuningChanged(String key, String newValue) {
-        switch (key) {
-            case STATUS_BAR_SHOW_BATTERY_PERCENT:
-                mShowBatteryText = newValue != null && Integer.parseInt(newValue) == 2;
-                break;
-            case STATUS_BAR_BATTERY_STYLE:
-                if (newValue != null) {
-                    final int value = Integer.parseInt(newValue);
-                    if (value == BatteryMeterDrawable.BATTERY_STYLE_TEXT) {
-                        mForceBatteryText = true;
-                    } else if (value == BatteryMeterDrawable.BATTERY_STYLE_HIDDEN) {
-                        mForceBatteryText = false;
-                    } else {
-                        mForceBatteryText = null;
-                    }
-                }
-                break;
-        }
-        updateVisibilities();
     }
 }
