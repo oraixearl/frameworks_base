@@ -3791,9 +3791,14 @@ public final class Settings {
         public static final String LONG_PRESS_KILL_DELAY = "long_press_kill_delay";
 
         /**
-         * Show or hide clock
-         * 0 - hide
-         * 1 - show (default)
+         * Whether to allow fullscreen screenshots or let the user select which area to screenshot
+         *
+         */
+        public static final String SCREENSHOT_TYPE = "screenshot_type";
+
+        /**
+         * Whether to display sound panel in the power menu
+         *
          * @hide
          */
         public static final String STATUS_BAR_CLOCK = "status_bar_clock";
