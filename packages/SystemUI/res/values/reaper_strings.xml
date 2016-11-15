@@ -75,8 +75,8 @@
     <string name="accessibility_quick_settings_screen_off">Screen off.</string>
     
     <!-- Screenshot QS Tile -->
-    <string name="accessibility_quick_settings_screenshot">Screenshot.</string>
     <string name="quick_settings_screenshot_label">Screenshot</string>
+    <string name="quick_settings_region_screenshot_label">Partial screenshot</string>
 
     <!-- Volume QS Tile -->
     <string name="accessibility_quick_settings_volume_panel">Volume</string>
