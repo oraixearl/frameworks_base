@@ -3601,10 +3601,21 @@ public final class Settings {
         public static final String REVERSE_LOOKUP_PROVIDER = "reverse_lookup_provider";
 
         /**
-         * whether to enable torch on lockscreen
+         * Whether user can swap the order of the Alert Slider.
+         * * Whether user can invert the order of the Alert Slider.
+         * 0: Default
+         * 1: Inverted
          * @hide
          */
-        public static final String DOUBLE_TAP_SLEEP_ANYWHERE = "double_tap_sleep_anywhere";
+        public static final String ALERT_SLIDER_ORDER = "alert_slider_order";
+
+        /**
+         * Preferred silent mode for Alert Slider..
+         * 0: Alarms only.
+         * 1: Total silence
+         * @hide
+         */
+        public static final String ALERT_SLIDER_SILENT_MODE = "alert_slider_silent_mode";
 
         /**
          * Enable statusbar double tap gesture on to put device to sleep
@@ -3676,12 +3687,6 @@ public final class Settings {
          * @hide
          */
         public static final String INCREASING_RING_RAMP_UP_TIME = "increasing_ring_ramp_up_time";
-
-        /**
-         * whether to enable torch on lockscreen
-         * @hide
-         */
-        public static final String KEYGUARD_TOGGLE_TORCH = "keyguard_toggle_torch";
 
         /**
          * The delay when killing the app on long press takes place
@@ -3851,15 +3856,6 @@ public final class Settings {
 
         /**
         /**
-         * Whether user can swap the order of the Alert Slider.
-         * * Whether user can invert the order of the Alert Slider.
-         * 0: Default
-         * 1: Inverted
-         * @hide
-         */
-        public static final String ALERT_SLIDER_ORDER = "alert_slider_order";
-
-        /**
          * Preferred silent mode for Alert Slider..
          * 0: Alarms only.
          * 1: Total silence
@@ -3867,12 +3863,6 @@ public final class Settings {
          * @hide
          */
         public static final String VOLUME_LINK_NOTIFICATION = "volume_link_notification";
-
-        /**
-         * Whether to wake the screen with the volume keys, the value is boolean.
-         * @hide
-         */
-        public static final String ALERT_SLIDER_SILENT_MODE = "alert_slider_silent_mode";
 
         /** @hide */
         public static final Validator KEY_VALIDATOR = new Validator() {
