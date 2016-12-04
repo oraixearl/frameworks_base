@@ -4081,8 +4081,12 @@ public final class Settings {
         public static final String QS_DATE_TIME_CENTER = "qs_date_time_center";
 
         /**
-         * Change quick settings tiles animation style
-         *
+         * Statusbar Reaper logo
+         * @hide
+         */
+        public static final String STATUS_BAR_REAPER_LOGO = "status_bar_reaper_logo";
+
+        /**
          * @hide
          */
         public static final String ANIM_TILE_STYLE = "anim_tile_style";

@@ -15,6 +15,7 @@
  */
 package com.android.systemui.tuner;
 
+import android.content.ContentResolver;
 import android.database.ContentObserver;
 import android.net.Uri;
 import android.os.Bundle;
@@ -28,6 +29,7 @@ import android.support.v7.preference.Preference.OnPreferenceChangeListener;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.support.v7.preference.PreferenceScreen;
 
 import com.android.internal.logging.MetricsLogger;
 import com.android.internal.logging.MetricsProto.MetricsEvent;
@@ -37,10 +39,22 @@ public class TunerFragment extends PreferenceFragment {
 
     private static final String TAG = "TunerFragment";
 
+    private static final String STATUS_BAR_REAPER_LOGO = "status_bar_reaper_logo";
+
+    private SwitchPreference mReaperLogo;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
+
+        PreferenceScreen prefSet = getPreferenceScreen();
+
+        final ContentResolver resolver = getActivity().getContentResolver();
+
+        mReaperLogo = (SwitchPreference) findPreference(STATUS_BAR_REAPER_LOGO);
+        mReaperLogo.setChecked((Settings.System.getInt(resolver,
+                Settings.System.STATUS_BAR_REAPER_LOGO, 0) == 1));
     }
 
     @Override
@@ -83,4 +97,13 @@ public class TunerFragment extends PreferenceFragment {
         return super.onOptionsItemSelected(item);
     }
 
+    public boolean onPreferenceTreeClick(Preference preference) {
+        if  (preference == mReaperLogo) {
+            boolean checked = ((SwitchPreference)preference).isChecked();
+            Settings.System.putInt(getActivity().getContentResolver(),
+                    Settings.System.STATUS_BAR_REAPER_LOGO, checked ? 1:0);
+            return true;
+          }
+        return super.onPreferenceTreeClick(preference);
+    }
 }

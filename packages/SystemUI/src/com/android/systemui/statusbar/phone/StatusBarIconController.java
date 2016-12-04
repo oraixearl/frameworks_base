@@ -89,6 +89,10 @@ public class StatusBarIconController extends StatusBarIconList implements Tunabl
     private int mClockLocation;
     private LinearLayout mCenterClockLayout;
     private TextView mCarrierLabel;
+
+    // Reaper Logo
+    private ImageView mReaperLogo;
+
     private int mIconSize;
     private int mIconHPadding;
 
@@ -151,6 +155,9 @@ public class StatusBarIconController extends StatusBarIconList implements Tunabl
         mCenterClock = (Clock) statusBar.findViewById(R.id.center_clock);
         mLeftClock = (Clock) statusBar.findViewById(R.id.left_clock);
         mCarrierLabel = (TextView) statusBar.findViewById(R.id.statusbar_carrier_text);
+
+        mReaperLogo = (ImageView) statusBar.findViewById(R.id.reaper_logo);
+
         mDarkModeIconColorSingleTone = context.getColor(R.color.dark_mode_icon_color_single_tone);
         mLightModeIconColorSingleTone = context.getColor(R.color.light_mode_icon_color_single_tone);
         mHandler = new Handler();
@@ -348,11 +355,19 @@ public class StatusBarIconController extends StatusBarIconList implements Tunabl
     public void hideNotificationIconArea(boolean animate) {
         animateHide(mNotificationIconAreaInner, animate);
         animateHide(mCenterClockLayout, animate);
+        if (Settings.System.getInt(mContext.getContentResolver(),
+                Settings.System.STATUS_BAR_REAPER_LOGO, 0) == 1) {
+           animateHide(mReaperLogo, animate);
+        }
     }
 
     public void showNotificationIconArea(boolean animate) {
         animateShow(mNotificationIconAreaInner, animate);
         animateShow(mCenterClockLayout, animate);
+        if (Settings.System.getInt(mContext.getContentResolver(),
+                Settings.System.STATUS_BAR_REAPER_LOGO, 0) == 1) {
+           animateShow(mReaperLogo, animate);
+        }
     }
 
     public void setClockVisibility(boolean visible) {
@@ -581,6 +596,7 @@ public class StatusBarIconController extends StatusBarIconList implements Tunabl
         mCenterClock.setTextColor(getTint(mTintArea, mCenterClock, mIconTint));
         mLeftClock.setTextColor(getTint(mTintArea, mLeftClock, mIconTint));
         mCarrierLabel.setTextColor(getTint(mTintArea, mCarrierLabel, mIconTint));
+        mReaperLogo.setImageTintList(ColorStateList.valueOf(mIconTint));
     }
 
     public void appTransitionPending() {

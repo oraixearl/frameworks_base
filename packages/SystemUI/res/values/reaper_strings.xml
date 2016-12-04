@@ -65,7 +65,11 @@
     
     <!-- Purgatory Tile -->
     <string name="quick_settings_reaper">Purgatory</string>
-    
+
+    <!-- Reaper Logo -->
+    <string name="status_bar_reaper_logo_title">Reaper logo</string>
+    <string name="status_bar_reaper_logo_summary">Enable to show Reaper logo on the left side of the statusbar</string>    
+
     <!-- Reboot/Recovery QS Tile -->
     <string name="quick_settings_reboot_label">Reboot</string>
     <string name="quick_settings_reboot_recovery_label">Recovery</string>

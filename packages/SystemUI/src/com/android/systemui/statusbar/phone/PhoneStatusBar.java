@@ -392,6 +392,10 @@ public class PhoneStatusBar extends BaseStatusBar implements DemoMode,
     private TextView mCarrierLabel;
     boolean mExpandedVisible;
 
+    // Reaper logo
+    private boolean mReaperLogo;
+    private ImageView reaperLogo;
+
     private int mNavigationBarWindowState = WINDOW_STATE_SHOWING;
 
     // the tracker view
@@ -503,6 +507,9 @@ public class PhoneStatusBar extends BaseStatusBar implements DemoMode,
                     Settings.System.QS_COLUMNS_LANDSCAPE),
                     false, this, UserHandle.USER_ALL);
             resolver.registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.STATUS_BAR_REAPER_LOGO),
+                    false, this, UserHandle.USER_ALL);
+            resolver.registerContentObserver(Settings.System.getUriFor(
                     Settings.System.STATUS_BAR_SHOW_CARRIER),
                     false, this, UserHandle.USER_ALL);
             resolver.registerContentObserver(Settings.System.getUriFor(
@@ -546,6 +553,11 @@ public class PhoneStatusBar extends BaseStatusBar implements DemoMode,
 
          public void update() {
             ContentResolver resolver = mContext.getContentResolver();
+
+            mReaperLogo = Settings.System.getIntForUser(resolver,
+                    Settings.System.STATUS_BAR_REAPER_LOGO, 0, mCurrentUserId) == 1;
+            showReaperLogo(mReaperLogo);
+
             mShowCarrierLabel = Settings.System.getIntForUser(resolver,
                     Settings.System.STATUS_BAR_SHOW_CARRIER, 1, UserHandle.USER_CURRENT);
 
@@ -3696,6 +3708,15 @@ public class PhoneStatusBar extends BaseStatusBar implements DemoMode,
             }
         }, cancelAction, afterKeyguardGone);
     }
+
+    public void showReaperLogo(boolean show) {
+          if (mStatusBarView == null) return;
+          ContentResolver resolver = mContext.getContentResolver();
+          reaperLogo = (ImageView) mStatusBarView.findViewById(R.id.reaper_logo);
+          if (reaperLogo != null) {
+              reaperLogo.setVisibility(show ? (mReaperLogo ? View.VISIBLE : View.GONE) : View.GONE);
+          }
+     }
 
     private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
         @Override
