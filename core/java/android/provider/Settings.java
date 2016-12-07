@@ -347,7 +347,6 @@ public final class Settings {
      * Input: Nothing.
      * <p>
      * Output: Nothing.
-
      */
     @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
     public static final String ACTION_WIFI_SETTINGS =
@@ -3669,7 +3668,7 @@ public final class Settings {
 
         /** @hide */ public static final int HEADS_UP_USER_OFF = 0;
         /** @hide */ public static final int HEADS_UP_USER_ON = 1;
-
+        
         /**
          * Immersive recents options
          * 0 = Default AOSP look
@@ -3678,7 +3677,7 @@ public final class Settings {
          * 3 = Navbar only
          * @hide
          */
-        public static final String IMMERSIVE_RECENTS = "immersive_recents";
+        public static final String IMMERSIVE_RECENTS = "immersive_recents";        
 
         /**
          * Whether the phone ringtone should be played in an increasing manner
@@ -3817,6 +3816,18 @@ public final class Settings {
          * @hide
          */
         public static final String QS_SMART_PULLDOWN = "qs_smart_pulldown";
+        
+        /**
+         * show clear all recents button
+         * @hide
+         */
+        public static final String SHOW_CLEAR_ALL_RECENTS = "show_clear_all_recents";
+
+        /**
+         * location of the clear all rectents button
+         * @hide
+         */
+        public static final String  RECENTS_CLEAR_ALL_LOCATION = "recents_clear_all_location";        
 
         /**
          * Show the pending notification counts as overlays on the status bar
