@@ -155,6 +155,8 @@ import com.android.server.policy.keyguard.KeyguardServiceDelegate;
 import com.android.server.policy.keyguard.KeyguardServiceDelegate.DrawnListener;
 import com.android.server.statusbar.StatusBarManagerInternal;
 
+import dalvik.system.DexClassLoader;
+
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
@@ -1818,8 +1820,10 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                 com.android.internal.R.string.config_deviceKeyHandlerClass);
 
         if (!deviceKeyHandlerLib.isEmpty() && !deviceKeyHandlerClass.isEmpty()) {
-            PathClassLoader loader =  new PathClassLoader(deviceKeyHandlerLib,
-                    getClass().getClassLoader());
+            DexClassLoader loader =  new DexClassLoader(deviceKeyHandlerLib,
+                    new ContextWrapper(mContext).getCacheDir().getAbsolutePath(),
+                    null,
+                    ClassLoader.getSystemClassLoader());
             try {
                 Class<?> klass = loader.loadClass(deviceKeyHandlerClass);
                 Constructor<?> constructor = klass.getConstructor(Context.class);
