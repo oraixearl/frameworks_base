@@ -37,7 +37,4 @@
         android:layout_width="0dp"
         android:visibility="gone"
         android:layout_marginBottom="@dimen/battery_margin_bottom"/>
-
-    <include layout="@layout/slim_battery_container" />
-
 </LinearLayout>
