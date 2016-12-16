@@ -54,7 +54,6 @@ import com.android.internal.telephony.ITelephony;
 import com.android.server.pm.PackageManagerService;
 
 import android.util.Log;
-import android.view.IWindowManager;
 import android.view.WindowManager;
 
 import java.io.BufferedReader;

@@ -27,8 +27,6 @@
 #include <utils/misc.h>
 #include <signal.h>
 #include <time.h>
-#include <pthread.h>
-#include <sys/select.h>
 
 #include <cutils/properties.h>
 
@@ -64,6 +62,12 @@
 
 #include <private/regionalization/Environment.h>
 
+#define OEM_BOOTANIMATION_FILE "/oem/media/bootanimation.zip"
+#define SYSTEM_BOOTANIMATION_FILE "/system/media/bootanimation.zip"
+#define SYSTEM_ENCRYPTED_BOOTANIMATION_FILE "/system/media/bootanimation-encrypted.zip"
+
+#define EXIT_PROP_NAME "service.bootanim.exit"
+
 namespace android {
 
 static const char OEM_BOOTANIMATION_FILE[] = "/oem/media/bootanimation.zip";
@@ -91,36 +95,6 @@ static const std::vector<std::string> PLAY_SOUND_BOOTREASON_BLACKLIST {
 };
 
 // ---------------------------------------------------------------------------
-
-static pthread_mutex_t mp_lock;
-static pthread_cond_t mp_cond;
-static bool isMPlayerPrepared = false;
-static bool isMPlayerCompleted = false;
-
-class MPlayerListener : public MediaPlayerListener
-{
-    void notify(int msg, int /*ext1*/, int /*ext2*/, const Parcel * /*obj*/)
-    {
-        switch (msg) {
-        case MEDIA_NOP: // interface test message
-            break;
-        case MEDIA_PREPARED:
-            pthread_mutex_lock(&mp_lock);
-            isMPlayerPrepared = true;
-            pthread_cond_signal(&mp_cond);
-            pthread_mutex_unlock(&mp_lock);
-            break;
-        case MEDIA_PLAYBACK_COMPLETE:
-            pthread_mutex_lock(&mp_lock);
-            isMPlayerCompleted = true;
-            pthread_cond_signal(&mp_cond);
-            pthread_mutex_unlock(&mp_lock);
-            break;
-        default:
-            break;
-        }
-    }
-};
 
 BootAnimation::BootAnimation() : Thread(false), mClockEnabled(true) {
     mSession = new SurfaceComposerClient();
@@ -829,8 +803,9 @@ bool BootAnimation::playAnimation(const Animation& animation)
 {
     const size_t pcount = animation.parts.size();
     nsecs_t frameDuration = s2ns(1) / animation.fps;
-    const int animationX = (mWidth - animation.width) / 2;
-    const int animationY = (mHeight - animation.height) / 2;
+
+    Region clearReg(Rect(mWidth, mHeight));
+    clearReg.subtractSelf(Rect(xc, yc, xc+animation.width, yc+animation.height));
 
     for (size_t i=0 ; i<pcount ; i++) {
         const Animation::Part& part(animation.parts[i]);
@@ -936,22 +911,6 @@ bool BootAnimation::playAnimation(const Animation& animation)
             }
         }
     }
-
-    // Free textures created for looping parts now that the animation is done.
-    for (const Animation::Part& part : animation.parts) {
-        if (part.count != 1) {
-            const size_t fcount = part.frames.size();
-            for (size_t j = 0; j < fcount; j++) {
-                const Animation::Frame& frame(part.frames[j]);
-                glDeleteTextures(1, &frame.tid);
-            }
-        }
-    }
-
-    // we've finally played everything we're going to play
-    audioplay::setPlaying(false);
-    audioplay::destroy();
-
     return true;
 }
 
