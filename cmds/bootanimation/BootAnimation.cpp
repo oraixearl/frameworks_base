@@ -91,10 +91,35 @@ static const std::vector<std::string> PLAY_SOUND_BOOTREASON_BLACKLIST {
 
 // ---------------------------------------------------------------------------
 
-#ifdef MULTITHREAD_DECODE
-static const int MAX_DECODE_THREADS = 2;
-static const int MAX_DECODE_CACHE = 3;
-#endif
+static pthread_mutex_t mp_lock;
+static pthread_cond_t mp_cond;
+static bool isMPlayerPrepared = false;
+static bool isMPlayerCompleted = false;
+
+class MPlayerListener : public MediaPlayerListener
+{
+    void notify(int msg, int /*ext1*/, int /*ext2*/, const Parcel * /*obj*/)
+    {
+        switch (msg) {
+        case MEDIA_NOP: // interface test message
+            break;
+        case MEDIA_PREPARED:
+            pthread_mutex_lock(&mp_lock);
+            isMPlayerPrepared = true;
+            pthread_cond_signal(&mp_cond);
+            pthread_mutex_unlock(&mp_lock);
+            break;
+        case MEDIA_PLAYBACK_COMPLETE:
+            pthread_mutex_lock(&mp_lock);
+            isMPlayerCompleted = true;
+            pthread_cond_signal(&mp_cond);
+            pthread_mutex_unlock(&mp_lock);
+            break;
+        default:
+            break;
+        }
+    }
+};
 
 static unsigned long getFreeMemory(void)
 {
@@ -237,16 +262,16 @@ status_t BootAnimation::initTexture(Texture* texture, AssetManager& assets,
     return NO_ERROR;
 }
 
-SkBitmap* BootAnimation::decode(const Animation::Frame& frame)
+status_t BootAnimation::initTexture(const Animation::Frame& frame)
 {
+    //StopWatch watch("blah");
 
-    SkBitmap *bitmap = NULL;
+    SkBitmap bitmap;
     SkMemoryStream  stream(frame.map->getDataPtr(), frame.map->getDataLength());
     SkImageDecoder* codec = SkImageDecoder::Factory(&stream);
     if (codec != NULL) {
-        bitmap = new SkBitmap();
         codec->setDitherImage(false);
-        codec->decode(&stream, bitmap,
+        codec->decode(&stream, &bitmap,
                 #ifdef USE_565
                 kRGB_565_SkColorType,
                 #else
@@ -256,23 +281,13 @@ SkBitmap* BootAnimation::decode(const Animation::Frame& frame)
         delete codec;
     }
 
-    return bitmap;
-}
+    // ensure we can call getPixels(). No need to call unlock, since the
+    // bitmap will go out of scope when we return from this method.
+    bitmap.lockPixels();
 
-status_t BootAnimation::initTexture(const Animation::Frame& frame)
-{
-    //StopWatch watch("blah");
-    return initTexture(decode(frame));
-}
-
-status_t BootAnimation::initTexture(SkBitmap *bitmap)
-{
-    // ensure we can call getPixels().
-    bitmap->lockPixels();
-
-    const int w = bitmap->width();
-    const int h = bitmap->height();
-    const void* p = bitmap->getPixels();
+    const int w = bitmap.width();
+    const int h = bitmap.height();
+    const void* p = bitmap.getPixels();
 
     GLint crop[4] = { 0, h, w, -h };
     int tw = 1 << (31 - __builtin_clz(w));
@@ -280,7 +295,7 @@ status_t BootAnimation::initTexture(SkBitmap *bitmap)
     if (tw < w) tw <<= 1;
     if (th < h) th <<= 1;
 
-    switch (bitmap->colorType()) {
+    switch (bitmap.colorType()) {
         case kN32_SkColorType:
             if (!mUseNpotTextures && (tw != w || th != h)) {
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tw, th, 0, GL_RGBA,
@@ -310,8 +325,6 @@ status_t BootAnimation::initTexture(SkBitmap *bitmap)
 
     glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_CROP_RECT_OES, crop);
 
-    bitmap->unlockPixels();
-    delete bitmap;
     return NO_ERROR;
 }
 
@@ -952,14 +965,6 @@ bool BootAnimation::playAnimation(const Animation& animation)
                     part.backgroundColor[2],
                     1.0f);
 
-#ifdef MULTITHREAD_DECODE
-            FrameManager *frameManager = NULL;
-            if (r == 0 || needSaveMem) {
-                frameManager = new FrameManager(MAX_DECODE_THREADS,
-                    MAX_DECODE_CACHE, part.frames);
-            }
-#endif
-
             for (size_t j=0 ; j<fcount && (!exitPending() || part.playUntilComplete) ; j++) {
                 const Animation::Frame& frame(part.frames[j]);
                 nsecs_t lastFrame = systemTime();
@@ -973,11 +978,7 @@ bool BootAnimation::playAnimation(const Animation& animation)
                         glTexParameterx(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
                         glTexParameterx(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
                     }
-#ifdef MULTITHREAD_DECODE
-                    initTexture(frameManager->next());
-#else
                     initTexture(frame);
-#endif
                 }
 
                 const int xc = animationX + frame.trimX;
@@ -1024,12 +1025,6 @@ bool BootAnimation::playAnimation(const Animation& animation)
             }
 
             usleep(part.pause * ns2us(frameDuration));
-
-#ifdef MULTITHREAD_DECODE
-            if (frameManager) {
-                delete frameManager;
-            }
-#endif
 
             // For infinite parts, we've now played them at least once, so perhaps exit
             if(exitPending() && !part.count)
@@ -1099,268 +1094,6 @@ BootAnimation::Animation* BootAnimation::loadAnimation(const String8& fn)
     mLoadedFiles.remove(fn);
     return animation;
 }
-
-#ifdef MULTITHREAD_DECODE
-FrameManager::FrameManager(int numThreads, size_t maxSize, const SortedVector<BootAnimation::Animation::Frame>& frames) :
-    mMaxSize(maxSize),
-    mFrameCounter(0),
-    mNextIdx(0),
-    mFrames(frames),
-    mExit(false)
-{
-    pthread_mutex_init(&mBitmapsMutex, NULL);
-    pthread_cond_init(&mSpaceAvailableCondition, NULL);
-    pthread_cond_init(&mBitmapReadyCondition, NULL);
-    for (int i = 0; i < numThreads; i++) {
-        DecodeThread *thread = new DecodeThread(this);
-        thread->run("bootanimation", PRIORITY_URGENT_DISPLAY);
-        mThreads.add(thread);
-    }
-}
-
-FrameManager::~FrameManager()
-{
-    mExit = true;
-    pthread_cond_broadcast(&mSpaceAvailableCondition);
-    pthread_cond_broadcast(&mBitmapReadyCondition);
-    for (size_t i = 0; i < mThreads.size(); i++) {
-        mThreads.itemAt(i)->requestExitAndWait();
-    }
-
-    // Any bitmap left in the queue won't get cleaned up by
-    // the consumer.  Clean up now.
-    for (size_t i = 0; i < mDecodedFrames.size(); i++) {
-        delete mDecodedFrames[i].bitmap;
-    }
-}
-
-SkBitmap* FrameManager::next()
-{
-    pthread_mutex_lock(&mBitmapsMutex);
-
-    while (mDecodedFrames.size() == 0 ||
-            mDecodedFrames.itemAt(0).idx != mNextIdx) {
-        pthread_cond_wait(&mBitmapReadyCondition, &mBitmapsMutex);
-    }
-    DecodeWork work = mDecodedFrames.itemAt(0);
-    mDecodedFrames.removeAt(0);
-    mNextIdx++;
-    pthread_cond_signal(&mSpaceAvailableCondition);
-    pthread_mutex_unlock(&mBitmapsMutex);
-    // The caller now owns the bitmap
-    return work.bitmap;
-}
-
-FrameManager::DecodeWork FrameManager::getWork()
-{
-    DecodeWork work = {
-        .frame = NULL,
-        .bitmap = NULL,
-        .idx = 0
-    };
-
-    pthread_mutex_lock(&mBitmapsMutex);
-
-    while (mDecodedFrames.size() >= mMaxSize && !mExit) {
-        pthread_cond_wait(&mSpaceAvailableCondition, &mBitmapsMutex);
-    }
-
-    if (!mExit) {
-        work.frame = &mFrames.itemAt(mFrameCounter % mFrames.size());
-        work.idx = mFrameCounter;
-        mFrameCounter++;
-    }
-
-    pthread_mutex_unlock(&mBitmapsMutex);
-    return work;
-}
-
-void FrameManager::completeWork(DecodeWork work) {
-    size_t insertIdx;
-    pthread_mutex_lock(&mBitmapsMutex);
-
-    for (insertIdx = 0; insertIdx < mDecodedFrames.size(); insertIdx++) {
-        if (work.idx < mDecodedFrames.itemAt(insertIdx).idx) {
-            break;
-        }
-    }
-
-    mDecodedFrames.insertAt(work, insertIdx);
-    pthread_cond_signal(&mBitmapReadyCondition);
-
-    pthread_mutex_unlock(&mBitmapsMutex);
-}
-
-FrameManager::DecodeThread::DecodeThread(FrameManager* manager) :
-    Thread(false),
-    mManager(manager)
-{
-
-}
-
-bool FrameManager::DecodeThread::threadLoop()
-{
-    DecodeWork work = mManager->getWork();
-    if (work.frame != NULL) {
-        work.bitmap = BootAnimation::decode(*work.frame);
-        mManager->completeWork(work);
-        return true;
-    }
-
-    return false;
-}
-#endif
-
-bool BootAnimation::playSoundsAllowed() const {
-    // Only play sounds for system boots, not runtime restarts.
-    if (!mSystemBoot) {
-        return false;
-    }
-
-    // Read the system property to see if we should play the sound.
-    // If it's not present, default to allowed.
-    if (!property_get_bool(PLAY_SOUND_PROP_NAME, 1)) {
-        return false;
-    }
-
-    // Don't play sounds if this is a reboot due to an error.
-    char bootreason[PROPERTY_VALUE_MAX];
-    if (property_get(BOOTREASON_PROP_NAME, bootreason, nullptr) > 0) {
-        for (const auto& str : PLAY_SOUND_BOOTREASON_BLACKLIST) {
-            if (strcasecmp(str.c_str(), bootreason) == 0) {
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
-bool BootAnimation::updateIsTimeAccurate() {
-    static constexpr long long MAX_TIME_IN_PAST =   60000LL * 60LL * 24LL * 30LL;  // 30 days
-    static constexpr long long MAX_TIME_IN_FUTURE = 60000LL * 90LL;  // 90 minutes
-
-    if (mTimeIsAccurate) {
-        return true;
-    }
-
-    struct stat statResult;
-    if(stat(ACCURATE_TIME_FLAG_FILE_PATH, &statResult) == 0) {
-        mTimeIsAccurate = true;
-        return true;
-    }
-
-    FILE* file = fopen(LAST_TIME_CHANGED_FILE_PATH, "r");
-    if (file != NULL) {
-      long long lastChangedTime = 0;
-      fscanf(file, "%lld", &lastChangedTime);
-      fclose(file);
-      if (lastChangedTime > 0) {
-        struct timespec now;
-        clock_gettime(CLOCK_REALTIME, &now);
-        // Match the Java timestamp format
-        long long rtcNow = (now.tv_sec * 1000LL) + (now.tv_nsec / 1000000LL);
-        if (ACCURATE_TIME_EPOCH < rtcNow
-            && lastChangedTime > (rtcNow - MAX_TIME_IN_PAST)
-            && lastChangedTime < (rtcNow + MAX_TIME_IN_FUTURE)) {
-            mTimeIsAccurate = true;
-        }
-      }
-    }
-
-    return mTimeIsAccurate;
-}
-
-BootAnimation::TimeCheckThread::TimeCheckThread(BootAnimation* bootAnimation) : Thread(false),
-    mInotifyFd(-1), mSystemWd(-1), mTimeWd(-1), mBootAnimation(bootAnimation) {}
-
-BootAnimation::TimeCheckThread::~TimeCheckThread() {
-    // mInotifyFd may be -1 but that's ok since we're not at risk of attempting to close a valid FD.
-    close(mInotifyFd);
-}
-
-bool BootAnimation::TimeCheckThread::threadLoop() {
-    bool shouldLoop = doThreadLoop() && !mBootAnimation->mTimeIsAccurate
-        && mBootAnimation->mClockEnabled;
-    if (!shouldLoop) {
-        close(mInotifyFd);
-        mInotifyFd = -1;
-    }
-    return shouldLoop;
-}
-
-bool BootAnimation::TimeCheckThread::doThreadLoop() {
-    static constexpr int BUFF_LEN (10 * (sizeof(struct inotify_event) + NAME_MAX + 1));
-
-    // Poll instead of doing a blocking read so the Thread can exit if requested.
-    struct pollfd pfd = { mInotifyFd, POLLIN, 0 };
-    ssize_t pollResult = poll(&pfd, 1, 1000);
-
-    if (pollResult == 0) {
-        return true;
-    } else if (pollResult < 0) {
-        ALOGE("Could not poll inotify events");
-        return false;
-    }
-
-    char buff[BUFF_LEN] __attribute__ ((aligned(__alignof__(struct inotify_event))));;
-    ssize_t length = read(mInotifyFd, buff, BUFF_LEN);
-    if (length == 0) {
-        return true;
-    } else if (length < 0) {
-        ALOGE("Could not read inotify events");
-        return false;
-    }
-
-    const struct inotify_event *event;
-    for (char* ptr = buff; ptr < buff + length; ptr += sizeof(struct inotify_event) + event->len) {
-        event = (const struct inotify_event *) ptr;
-        if (event->wd == mSystemWd && strcmp(SYSTEM_TIME_DIR_NAME, event->name) == 0) {
-            addTimeDirWatch();
-        } else if (event->wd == mTimeWd && (strcmp(LAST_TIME_CHANGED_FILE_NAME, event->name) == 0
-                || strcmp(ACCURATE_TIME_FLAG_FILE_NAME, event->name) == 0)) {
-            return !mBootAnimation->updateIsTimeAccurate();
-        }
-    }
-
-    return true;
-}
-
-void BootAnimation::TimeCheckThread::addTimeDirWatch() {
-        mTimeWd = inotify_add_watch(mInotifyFd, SYSTEM_TIME_DIR_PATH,
-                IN_CLOSE_WRITE | IN_MOVED_TO | IN_ATTRIB);
-        if (mTimeWd > 0) {
-            // No need to watch for the time directory to be created if it already exists
-            inotify_rm_watch(mInotifyFd, mSystemWd);
-            mSystemWd = -1;
-        }
-}
-
-status_t BootAnimation::TimeCheckThread::readyToRun() {
-    mInotifyFd = inotify_init();
-    if (mInotifyFd < 0) {
-        ALOGE("Could not initialize inotify fd");
-        return NO_INIT;
-    }
-
-    mSystemWd = inotify_add_watch(mInotifyFd, SYSTEM_DATA_DIR_PATH, IN_CREATE | IN_ATTRIB);
-    if (mSystemWd < 0) {
-        close(mInotifyFd);
-        mInotifyFd = -1;
-        ALOGE("Could not add watch for %s", SYSTEM_DATA_DIR_PATH);
-        return NO_INIT;
-    }
-
-    addTimeDirWatch();
-
-    if (mBootAnimation->updateIsTimeAccurate()) {
-        close(mInotifyFd);
-        mInotifyFd = -1;
-        return ALREADY_EXISTS;
-    }
-
-    return NO_ERROR;
-}
-
 // ---------------------------------------------------------------------------
 
 }
