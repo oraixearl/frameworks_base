@@ -60,14 +60,6 @@
 #include "BootAnimation.h"
 #include "audioplay.h"
 
-#include <private/regionalization/Environment.h>
-
-#define OEM_BOOTANIMATION_FILE "/oem/media/bootanimation.zip"
-#define SYSTEM_BOOTANIMATION_FILE "/system/media/bootanimation.zip"
-#define SYSTEM_ENCRYPTED_BOOTANIMATION_FILE "/system/media/bootanimation-encrypted.zip"
-
-#define EXIT_PROP_NAME "service.bootanim.exit"
-
 namespace android {
 
 static const char OEM_BOOTANIMATION_FILE[] = "/oem/media/bootanimation.zip";
@@ -96,7 +88,8 @@ static const std::vector<std::string> PLAY_SOUND_BOOTREASON_BLACKLIST {
 
 // ---------------------------------------------------------------------------
 
-BootAnimation::BootAnimation() : Thread(false), mClockEnabled(true) {
+BootAnimation::BootAnimation() : Thread(false), mClockEnabled(true), mTimeIsAccurate(false),
+        mTimeCheckThread(NULL) {
     mSession = new SurfaceComposerClient();
 
     // If the system has already booted, the animation is not being used for a boot.
@@ -252,35 +245,6 @@ status_t BootAnimation::initTexture(const Animation::Frame& frame)
     return NO_ERROR;
 }
 
-
-// Get bootup Animation File
-// Parameter: ImageID: IMG_OEM IMG_SYS IMG_ENC
-// Return Value : File path
-const char *BootAnimation::getAnimationFileName(ImageID image)
-{
-    const char *fileName[3] = { OEM_BOOTANIMATION_FILE,
-            SYSTEM_BOOTANIMATION_FILE,
-            SYSTEM_ENCRYPTED_BOOTANIMATION_FILE };
-
-    // Load animations of Carrier through regionalization environment
-    if (Environment::isSupported()) {
-        Environment* environment = new Environment();
-        const char* animFile = environment->getMediaFile(
-                Environment::ANIMATION_TYPE, Environment::BOOT_STATUS);
-        ALOGE("Get Carrier Animation type: %d,status:%d", Environment::ANIMATION_TYPE,Environment::BOOT_STATUS);
-        if (animFile != NULL && strcmp(animFile, "") != 0) {
-           return animFile;
-        }else{
-           ALOGD("Get Carrier Animation file: %s failed", animFile);
-        }
-        delete environment;
-    }else{
-           ALOGE("Get Carrier Animation file,since it's not support carrier");
-    }
-
-    return fileName[image];
-}
-
 status_t BootAnimation::readyToRun() {
     mAssets.addDefaultAssets();
 
@@ -342,14 +306,14 @@ status_t BootAnimation::readyToRun() {
 
     bool encryptedAnimation = atoi(decrypt) != 0 || !strcmp("trigger_restart_min_framework", decrypt);
 
-    if (encryptedAnimation && (access(getAnimationFileName(IMG_ENC), R_OK) == 0)) {
-        mZipFileName = getAnimationFileName(IMG_ENC);
+    if (encryptedAnimation && (access(SYSTEM_ENCRYPTED_BOOTANIMATION_FILE, R_OK) == 0)) {
+        mZipFileName = SYSTEM_ENCRYPTED_BOOTANIMATION_FILE;
     }
-    else if (access(getAnimationFileName(IMG_OEM), R_OK) == 0) {
-        mZipFileName = getAnimationFileName(IMG_OEM);
+    else if (access(OEM_BOOTANIMATION_FILE, R_OK) == 0) {
+        mZipFileName = OEM_BOOTANIMATION_FILE;
     }
-    else if (access(getAnimationFileName(IMG_SYS), R_OK) == 0) {
-        mZipFileName = getAnimationFileName(IMG_SYS);
+    else if (access(SYSTEM_BOOTANIMATION_FILE, R_OK) == 0) {
+        mZipFileName = SYSTEM_BOOTANIMATION_FILE;
     }
     return NO_ERROR;
 }
@@ -803,9 +767,8 @@ bool BootAnimation::playAnimation(const Animation& animation)
 {
     const size_t pcount = animation.parts.size();
     nsecs_t frameDuration = s2ns(1) / animation.fps;
-
-    Region clearReg(Rect(mWidth, mHeight));
-    clearReg.subtractSelf(Rect(xc, yc, xc+animation.width, yc+animation.height));
+    const int animationX = (mWidth - animation.width) / 2;
+    const int animationY = (mHeight - animation.height) / 2;
 
     for (size_t i=0 ; i<pcount ; i++) {
         const Animation::Part& part(animation.parts[i]);
@@ -903,14 +866,23 @@ bool BootAnimation::playAnimation(const Animation& animation)
                 break;
         }
 
-        // free the textures for this part
+    }
+
+    // Free textures created for looping parts now that the animation is done.
+    for (const Animation::Part& part : animation.parts) {
         if (part.count != 1) {
-            for (size_t j=0 ; j<fcount ; j++) {
+            const size_t fcount = part.frames.size();
+            for (size_t j = 0; j < fcount; j++) {
                 const Animation::Frame& frame(part.frames[j]);
                 glDeleteTextures(1, &frame.tid);
             }
         }
     }
+
+    // we've finally played everything we're going to play
+    audioplay::setPlaying(false);
+    audioplay::destroy();
+
     return true;
 }
 
@@ -954,6 +926,157 @@ BootAnimation::Animation* BootAnimation::loadAnimation(const String8& fn)
     mLoadedFiles.remove(fn);
     return animation;
 }
+
+bool BootAnimation::playSoundsAllowed() const {
+    // Only play sounds for system boots, not runtime restarts.
+    if (!mSystemBoot) {
+        return false;
+    }
+
+    // Read the system property to see if we should play the sound.
+    // If it's not present, default to allowed.
+    if (!property_get_bool(PLAY_SOUND_PROP_NAME, 1)) {
+        return false;
+    }
+
+    // Don't play sounds if this is a reboot due to an error.
+    char bootreason[PROPERTY_VALUE_MAX];
+    if (property_get(BOOTREASON_PROP_NAME, bootreason, nullptr) > 0) {
+        for (const auto& str : PLAY_SOUND_BOOTREASON_BLACKLIST) {
+            if (strcasecmp(str.c_str(), bootreason) == 0) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+bool BootAnimation::updateIsTimeAccurate() {
+    static constexpr long long MAX_TIME_IN_PAST =   60000LL * 60LL * 24LL * 30LL;  // 30 days
+    static constexpr long long MAX_TIME_IN_FUTURE = 60000LL * 90LL;  // 90 minutes
+
+    if (mTimeIsAccurate) {
+        return true;
+    }
+
+    struct stat statResult;
+    if(stat(ACCURATE_TIME_FLAG_FILE_PATH, &statResult) == 0) {
+        mTimeIsAccurate = true;
+        return true;
+    }
+
+    FILE* file = fopen(LAST_TIME_CHANGED_FILE_PATH, "r");
+    if (file != NULL) {
+      long long lastChangedTime = 0;
+      fscanf(file, "%lld", &lastChangedTime);
+      fclose(file);
+      if (lastChangedTime > 0) {
+        struct timespec now;
+        clock_gettime(CLOCK_REALTIME, &now);
+        // Match the Java timestamp format
+        long long rtcNow = (now.tv_sec * 1000LL) + (now.tv_nsec / 1000000LL);
+        if (ACCURATE_TIME_EPOCH < rtcNow
+            && lastChangedTime > (rtcNow - MAX_TIME_IN_PAST)
+            && lastChangedTime < (rtcNow + MAX_TIME_IN_FUTURE)) {
+            mTimeIsAccurate = true;
+        }
+      }
+    }
+
+    return mTimeIsAccurate;
+}
+
+BootAnimation::TimeCheckThread::TimeCheckThread(BootAnimation* bootAnimation) : Thread(false),
+    mInotifyFd(-1), mSystemWd(-1), mTimeWd(-1), mBootAnimation(bootAnimation) {}
+
+BootAnimation::TimeCheckThread::~TimeCheckThread() {
+    // mInotifyFd may be -1 but that's ok since we're not at risk of attempting to close a valid FD.
+    close(mInotifyFd);
+}
+
+bool BootAnimation::TimeCheckThread::threadLoop() {
+    bool shouldLoop = doThreadLoop() && !mBootAnimation->mTimeIsAccurate
+        && mBootAnimation->mClockEnabled;
+    if (!shouldLoop) {
+        close(mInotifyFd);
+        mInotifyFd = -1;
+    }
+    return shouldLoop;
+}
+
+bool BootAnimation::TimeCheckThread::doThreadLoop() {
+    static constexpr int BUFF_LEN (10 * (sizeof(struct inotify_event) + NAME_MAX + 1));
+
+    // Poll instead of doing a blocking read so the Thread can exit if requested.
+    struct pollfd pfd = { mInotifyFd, POLLIN, 0 };
+    ssize_t pollResult = poll(&pfd, 1, 1000);
+
+    if (pollResult == 0) {
+        return true;
+    } else if (pollResult < 0) {
+        ALOGE("Could not poll inotify events");
+        return false;
+    }
+
+    char buff[BUFF_LEN] __attribute__ ((aligned(__alignof__(struct inotify_event))));;
+    ssize_t length = read(mInotifyFd, buff, BUFF_LEN);
+    if (length == 0) {
+        return true;
+    } else if (length < 0) {
+        ALOGE("Could not read inotify events");
+        return false;
+    }
+
+    const struct inotify_event *event;
+    for (char* ptr = buff; ptr < buff + length; ptr += sizeof(struct inotify_event) + event->len) {
+        event = (const struct inotify_event *) ptr;
+        if (event->wd == mSystemWd && strcmp(SYSTEM_TIME_DIR_NAME, event->name) == 0) {
+            addTimeDirWatch();
+        } else if (event->wd == mTimeWd && (strcmp(LAST_TIME_CHANGED_FILE_NAME, event->name) == 0
+                || strcmp(ACCURATE_TIME_FLAG_FILE_NAME, event->name) == 0)) {
+            return !mBootAnimation->updateIsTimeAccurate();
+        }
+    }
+
+    return true;
+}
+
+void BootAnimation::TimeCheckThread::addTimeDirWatch() {
+        mTimeWd = inotify_add_watch(mInotifyFd, SYSTEM_TIME_DIR_PATH,
+                IN_CLOSE_WRITE | IN_MOVED_TO | IN_ATTRIB);
+        if (mTimeWd > 0) {
+            // No need to watch for the time directory to be created if it already exists
+            inotify_rm_watch(mInotifyFd, mSystemWd);
+            mSystemWd = -1;
+        }
+}
+
+status_t BootAnimation::TimeCheckThread::readyToRun() {
+    mInotifyFd = inotify_init();
+    if (mInotifyFd < 0) {
+        ALOGE("Could not initialize inotify fd");
+        return NO_INIT;
+    }
+
+    mSystemWd = inotify_add_watch(mInotifyFd, SYSTEM_DATA_DIR_PATH, IN_CREATE | IN_ATTRIB);
+    if (mSystemWd < 0) {
+        close(mInotifyFd);
+        mInotifyFd = -1;
+        ALOGE("Could not add watch for %s", SYSTEM_DATA_DIR_PATH);
+        return NO_INIT;
+    }
+
+    addTimeDirWatch();
+
+    if (mBootAnimation->updateIsTimeAccurate()) {
+        close(mInotifyFd);
+        mInotifyFd = -1;
+        return ALREADY_EXISTS;
+    }
+
+    return NO_ERROR;
+}
+
 // ---------------------------------------------------------------------------
 
 }
