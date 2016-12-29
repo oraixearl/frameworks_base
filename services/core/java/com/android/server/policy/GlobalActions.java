@@ -331,8 +331,6 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
                 mItems.add(getVoiceAssistAction());
             } else if (GLOBAL_ACTION_KEY_ASSIST.equals(actionKey)) {
                 mItems.add(getAssistAction());
-            } else if (GLOBAL_ACTION_KEY_RESTART.equals(actionKey)) {
-                mItems.add(new RestartAction());
             } else {
                 Log.e(TAG, "Invalid global action key " + actionKey);
             }
@@ -399,21 +397,6 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
 
         @Override
         public void onPress() {
-            mWindowManagerFuncs.reboot();
-        }
-
-        @Override
-        public boolean showDuringKeyguard() {
-            return true;
-        }
-        
-        @Override
-        public boolean showBeforeProvisioning() {
-            return true;
-        }
-
-        @Override
-        public void onPress() {
             try {
                 IPowerManager pm = IPowerManager.Stub.asInterface(ServiceManager
                         .getService(Context.POWER_SERVICE));
@@ -452,14 +435,7 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
 
         @Override
         public void onPress() {
-            try {
-                IPowerManager pm = IPowerManager.Stub.asInterface(ServiceManager
-                        .getService(Context.POWER_SERVICE));
-                pm.reboot(true, null, false);
-            } catch (RemoteException e) {
-                Log.e(TAG, "PowerManager service died!", e);
-                return;
-            }
+            mWindowManagerFuncs.reboot(false /* confirm */);
         }
     }
 
@@ -480,7 +456,7 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
             }
         };
     }
-
+    
     private class BugReportAction extends SinglePressAction implements LongPressAction {
 
         public BugReportAction() {
