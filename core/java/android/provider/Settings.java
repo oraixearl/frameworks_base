@@ -3606,6 +3606,12 @@ public final class Settings {
         public static final String REVERSE_LOOKUP_PROVIDER = "reverse_lookup_provider";
         
         /**
+         * Dashboard columns in settings
+         * @hide
+         */
+        public static final String DASHBOARD_COLUMNS = "dashboard_columns";
+
+        /**
          * Whether the notification light will be allowed when in zen mode during downtime
          * @hide
          */
