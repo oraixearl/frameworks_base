@@ -548,7 +548,11 @@ public class PhoneStatusBar extends BaseStatusBar implements DemoMode,
             ContentResolver resolver = mContext.getContentResolver();
             mShowCarrierLabel = Settings.System.getIntForUser(resolver,
                     Settings.System.STATUS_BAR_SHOW_CARRIER, 1, UserHandle.USER_CURRENT);
-         }
+
+            if (mHeader != null) {
+                mHeader.updateSettings();
+            }
+        }
     }
 
     private int mInteractingWindows;

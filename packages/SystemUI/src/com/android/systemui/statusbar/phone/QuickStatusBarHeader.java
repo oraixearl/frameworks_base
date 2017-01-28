@@ -429,15 +429,27 @@ public class QuickStatusBarHeader extends BaseStatusBarHeader implements
     @Override
     public void onUserInfoChanged(String name, Drawable picture) {
         mMultiUserAvatar.setImageDrawable(picture);
+	}
+
+    @Override
+    public void updateSettings() {
+        if (mQsPanel != null) {
+            mQsPanel.updateSettings();
 
         // if header is active we want to push the qs panel a little bit further down
         // to have more space for the header image
         post(new Runnable() {
             public void run() {
                 setQsPanelOffset();
-            }
-        });
+                }
+            });
+        }
+        if (mHeaderQsPanel != null) {
+            mHeaderQsPanel.updateSettings();
+        }
+        applyHeaderBackgroundShadow();
     }
+
 
     @Override
     public void updateHeader(final Drawable headerImage, final boolean force) {

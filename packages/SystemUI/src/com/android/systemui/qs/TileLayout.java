@@ -4,6 +4,7 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.content.res.Resources;
+import android.os.UserHandle;
 import android.provider.Settings;
 import android.util.AttributeSet;
 import android.view.View;
@@ -54,6 +55,11 @@ public class TileLayout extends ViewGroup implements QSTileLayout {
         }
     }
 
+    @Override
+    public void updateSettings() {
+	
+	}
+	
     public void addTile(TileRecord tile) {
         mRecords.add(tile);
         tile.tile.setListening(this, mListening);
@@ -89,6 +95,7 @@ public class TileLayout extends ViewGroup implements QSTileLayout {
         mCellHeight = mContext.getResources().getDimensionPixelSize(R.dimen.qs_tile_height);
         mCellMargin = res.getDimensionPixelSize(R.dimen.qs_tile_margin);
         mCellMarginTop = res.getDimensionPixelSize(R.dimen.qs_tile_margin_top);
+        updateSettings();
         if (mColumns != columns) {
             mColumns = columns;
             requestLayout();
