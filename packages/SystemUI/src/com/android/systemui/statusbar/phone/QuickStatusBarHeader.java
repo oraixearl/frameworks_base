@@ -49,7 +49,7 @@ import com.android.internal.logging.MetricsProto;
 import com.android.keyguard.KeyguardStatusView;
 import com.android.systemui.FontSizeUtils;
 import com.android.systemui.R;
-import com.android.systemui.purenexus.headers.StatusBarHeaderMachine;
+import com.android.systemui.reaper.headers.StatusBarHeaderMachine;
 import com.android.systemui.qs.QSPanel;
 import com.android.systemui.qs.QSPanel.Callback;
 import com.android.systemui.qs.QuickQSPanel;

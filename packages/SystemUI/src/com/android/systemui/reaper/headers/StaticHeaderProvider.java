@@ -16,7 +16,7 @@
  *
  */
 
-package com.android.systemui.purenexus.headers;
+package com.android.systemui.reaper.headers;
 
 import android.app.AlarmManager;
 import android.app.PendingIntent;
@@ -49,7 +49,7 @@ import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
 
 import com.android.systemui.R;
-import com.android.internal.util.purenexus.PUREUtils;
+import com.android.internal.util.reaper.ReaperUtils;
 
 public class StaticHeaderProvider implements
         StatusBarHeaderMachine.IStatusBarHeaderProvider {
@@ -113,7 +113,7 @@ public class StaticHeaderProvider implements
         if (mRes == null) {
             return null;
         }
-        if (!PUREUtils.isAvailableApp(mPackageName, mContext)) {
+        if (!ReaperUtils.isAvailableApp(mPackageName, mContext)) {
             return null;
         }
         try {
