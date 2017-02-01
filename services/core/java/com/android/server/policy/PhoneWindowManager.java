@@ -509,6 +509,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     boolean mHasSoftInput = false;
     boolean mTranslucentDecorEnabled = true;
     boolean mUseTvRouting;
+    int mBackKillTimeout;
     boolean mVolumeWakeScreen;
     boolean mVolBtnMusicControls;
     boolean mIsLongPress;
@@ -2056,6 +2057,9 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                     UserHandle.USER_CURRENT);
             mVolBtnMusicControls = (Settings.System.getIntForUser(resolver,
                     Settings.System.VOLBTN_MUSIC_CONTROLS, 0, UserHandle.USER_CURRENT) == 1);
+                    
+            mBackKillTimeout = Settings.System.getIntForUser(resolver,
+                    Settings.System.LONG_PRESS_KILL_DELAY, 1000, UserHandle.USER_CURRENT);                    
 
             // Configure wake gesture.
             boolean wakeGestureEnabledSetting = Settings.Secure.getIntForUser(resolver,
