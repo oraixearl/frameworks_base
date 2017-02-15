@@ -90,7 +90,7 @@ public class ScreenshotTile extends QSTile<QSTile.BooleanState> {
 
     @Override
     public int getMetricsCategory() {
-        return MetricsEvent.SCREEN;
+        return MetricsEvent.REAPER;
     }
 
     @Override
